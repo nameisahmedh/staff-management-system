@@ -3,7 +3,7 @@ import { useTasks } from '../../hooks/useTasks';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { useModal } from '../../contexts/ModalContext';
-import { STATUSES, PRIORITIES, getTaskStatusWithOverdue, getStatusBadgeColor, getPriorityBadgeColor } from '../../utils/constants';
+import { STATUSES, PRIORITIES } from '../../utils/constants';
 import { enhanceTaskDescription, generateEmailNotification } from '../../services/geminiService';
 import { generateEnhancedEmailContent, sendTaskEmail } from '../../services/emailService';
 import TaskList from './TaskList';
@@ -83,14 +83,7 @@ const AdminTasksView = ({ showFormOnly = false }) => {
       
       let emailContent;
       try {
-        const emailText = await generateEmailNotification(task, staffUser, adminUser?.username || 'Admin');
-        const lines = emailText.split('\n');
-        const subjectLine = lines.find(line => line.toLowerCase().includes('subject:')) || lines[0];
-        const bodyLines = lines.filter(line => !line.toLowerCase().includes('subject:'));
-        emailContent = {
-          subject: subjectLine.replace(/subject:\s*/i, '').trim(),
-          body: bodyLines.join('\n').trim()
-        };
+        emailContent = await generateEmailNotification(task, staffUser, adminUser?.username || 'Admin');
       } catch (geminiError) {
         console.log('Gemini API failed, using enhanced template');
         emailContent = await generateEnhancedEmailContent(task, staffUser, adminUser);

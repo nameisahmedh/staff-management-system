@@ -383,20 +383,25 @@ const MoodAnalytics = () => {
       {aiAnalysis && (
         <div className="mb-4 sm:mb-6">
           <h4 className="text-responsive-base font-medium mb-3 text-black dark:text-white">🤖 Arix Mood Analysis & Recommendations</h4>
-          <div className="bg-purple-50 dark:bg-purple-900/20 p-3 sm:p-4 rounded-lg border border-purple-200 dark:border-purple-700">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2 sm:gap-0">
-              <span className="text-xs sm:text-sm font-medium text-purple-700 dark:text-purple-300">Analysis Report</span>
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(aiAnalysis);
-                  showToast('Analysis copied to clipboard!', 'success');
-                }}
-                className="bg-purple-600 text-white px-2 py-1 sm:px-3 sm:py-1 rounded text-xs hover:bg-purple-700 self-start sm:self-auto"
-              >
-                📋 Copy
-              </button>
+          <div className="bg-purple-50 dark:bg-purple-900/20 p-3 sm:p-4 rounded-lg border border-purple-200 dark:border-purple-700 space-y-4">
+            <div>
+              <h5 className="font-semibold text-purple-800 dark:text-purple-200">Summary</h5>
+              <p className="text-sm text-gray-800 dark:text-gray-200">{aiAnalysis.summary}</p>
             </div>
-            <pre className="whitespace-pre-wrap text-xs sm:text-sm text-gray-800 dark:text-gray-200 font-sans overflow-x-auto">{aiAnalysis}</pre>
+            <div>
+              <h5 className="font-semibold text-purple-800 dark:text-purple-200">Insights</h5>
+              <p className="text-sm text-gray-800 dark:text-gray-200">{aiAnalysis.insights}</p>
+            </div>
+            <div>
+              <h5 className="font-semibold text-purple-800 dark:text-purple-200">Recommendations</h5>
+              <p className="text-sm text-gray-800 dark:text-gray-200">{aiAnalysis.recommendations}</p>
+            </div>
+            <div>
+              <h5 className="font-semibold text-purple-800 dark:text-purple-200">Action Items</h5>
+              <ul className="list-disc list-inside text-sm text-gray-800 dark:text-gray-200">
+                {aiAnalysis.actionItems.split('\n').map((item, index) => item && <li key={index}>{item.replace(/^- /, '')}</li>)}
+              </ul>
+            </div>
           </div>
         </div>
       )}

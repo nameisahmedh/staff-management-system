@@ -48,7 +48,10 @@ const AppContent = () => {
   );
 };
 
+import { checkEnvironment } from './utils/envCheck';
+
 function App() {
+  checkEnvironment();
   return (
     <ThemeProvider>
       <AuthProvider>

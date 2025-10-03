@@ -13,6 +13,7 @@ const ContactModal = ({ onClose }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [apiError, setApiError] = useState('');
+  const [emailSent, setEmailSent] = useState(false);
   const { showToast } = useToast();
 
   const emotions = [
@@ -40,7 +41,7 @@ const ContactModal = ({ onClose }) => {
 
     setIsGenerating(true);
     setApiError('');
-    
+
     try {
       const selectedEmotion = emotions.find(e => e.value === formData.emotion);
       const generatedMessage = await generateContactEmail(
@@ -61,7 +62,7 @@ const ContactModal = ({ onClose }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.name || !formData.email || !formData.message) {
       showToast('Please fill in all required fields.', 'error');
       return;
@@ -69,12 +70,58 @@ const ContactModal = ({ onClose }) => {
 
     setIsSending(true);
     try {
-      // TODO: Replace with a real email sending service (e.g., EmailJS or a backend endpoint)
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      showToast('Email sent successfully! We will get back to you soon.', 'success');
-      onClose();
+      // Create a temporary form for FormSubmit
+      const tempForm = document.createElement('form');
+      tempForm.action = 'https://formsubmit.co/mdqamarahmed123@gmail.com';
+      tempForm.method = 'POST';
+      tempForm.target = '_blank';
+
+      // Add form data as hidden inputs
+      const fields = {
+        name: formData.name,
+        email: formData.email,
+        message: formData.message,
+        emotion: formData.emotion || 'Not specified',
+        topic: formData.topic || 'General Inquiry',
+        _subject: `Staff Management Contact: ${formData.topic || 'General Inquiry'}`,
+        _captcha: 'false',
+        _template: 'table'
+      };
+
+      Object.entries(fields).forEach(([key, value]) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = value;
+        tempForm.appendChild(input);
+      });
+
+      // Submit the form
+      document.body.appendChild(tempForm);
+      tempForm.submit();
+      document.body.removeChild(tempForm);
+
+      // Show success state
+      setEmailSent(true);
+      showToast('Email sent successfully! Check your email for confirmation.', 'success');
+      
+      // Reset form
+      setFormData({
+        name: '',
+        email: '',
+        emotion: '',
+        topic: '',
+        message: ''
+      });
+      
+      // Close modal after showing success
+      setTimeout(() => {
+        onClose();
+      }, 2000);
+      
     } catch (error) {
-      alert('Failed to send email: ' + error.message);
+      console.error('Email sending error:', error);
+      showToast('Failed to send email. Please try again later.', 'error');
     } finally {
       setIsSending(false);
     }
@@ -94,7 +141,21 @@ const ContactModal = ({ onClose }) => {
           </button>
         </div>
 
+        {/* Success Message */}
+        {emailSent && (
+          <div className="p-6 text-center">
+            <div className="text-6xl mb-4">✅</div>
+            <h3 className="text-xl font-semibold text-green-600 dark:text-green-400 mb-2">
+              Email Sent Successfully!
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400">
+              Your message has been sent. We'll get back to you soon!
+            </p>
+          </div>
+        )}
+
         {/* Form */}
+        {!emailSent && (
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Name and Email */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -198,6 +259,8 @@ const ContactModal = ({ onClose }) => {
             )}
           </div>
 
+
+
           {/* Message Textarea */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -235,6 +298,7 @@ const ContactModal = ({ onClose }) => {
             </button>
           </div>
         </form>
+        )}
       </div>
     </div>
   );
