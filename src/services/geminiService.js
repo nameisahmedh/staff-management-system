@@ -1,5 +1,5 @@
 export const callGeminiAPI = async (prompt) => {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
 
   console.log('=== GEMINI SERVICE DEBUG ===');
   console.log('API Key from env:', apiKey ? 'Found' : 'Not found');
@@ -7,14 +7,14 @@ export const callGeminiAPI = async (prompt) => {
   console.log('API Key preview:', apiKey ? apiKey.substring(0, 15) + '...' : 'N/A');
 
   if (!apiKey) {
-    throw new Error('Gemini API key not found. Please add VITE_GEMINI_API_KEY to your .env file.');
+    throw new Error('Gemini API key not found. Please add REACT_APP_GEMINI_API_KEY to your .env file.');
   }
 
   if (!apiKey.startsWith('AIzaSy')) {
     throw new Error('Invalid API key format. Gemini API keys should start with "AIzaSy"');
   }
   
-  const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
+  const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`;
   
   try {
     const response = await fetch(apiUrl, {
@@ -161,4 +161,3 @@ Make it professional and actionable for management.`;
     throw new Error(`Mood analysis failed: ${error.message}`);
   }
 };
-

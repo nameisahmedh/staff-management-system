@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { generateContactEmail } from '../services/geminiService';
+import { useToast } from '../contexts/ToastContext';
 
 const ContactModal = ({ onClose }) => {
   const [formData, setFormData] = useState({
@@ -12,6 +13,7 @@ const ContactModal = ({ onClose }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [apiError, setApiError] = useState('');
+  const { showToast } = useToast();
 
   const emotions = [
     { value: 'happy', label: '😊 Happy', emoji: '😊' },
@@ -27,12 +29,12 @@ const ContactModal = ({ onClose }) => {
 
   const handleGenerateEmail = async () => {
     if (!formData.emotion || !formData.topic) {
-      alert('Please select an emotion and enter a topic first.');
+      showToast('Please select an emotion and enter a topic first.', 'warning');
       return;
     }
 
     if (!formData.name) {
-      alert('Please enter your name first.');
+      showToast('Please enter your name first.', 'warning');
       return;
     }
 
@@ -48,6 +50,7 @@ const ContactModal = ({ onClose }) => {
       );
       setFormData({ ...formData, message: generatedMessage });
       setApiError('');
+      showToast('AI has generated a draft for your message!', 'success');
     } catch (error) {
       console.error('Email generation error:', error);
       setApiError(error.message);
@@ -60,15 +63,15 @@ const ContactModal = ({ onClose }) => {
     e.preventDefault();
     
     if (!formData.name || !formData.email || !formData.message) {
-      alert('Please fill in all required fields.');
+      showToast('Please fill in all required fields.', 'error');
       return;
     }
 
     setIsSending(true);
     try {
-      // Simulate sending email
+      // TODO: Replace with a real email sending service (e.g., EmailJS or a backend endpoint)
       await new Promise(resolve => setTimeout(resolve, 1500));
-      alert('Email sent successfully! We will get back to you soon.');
+      showToast('Email sent successfully! We will get back to you soon.', 'success');
       onClose();
     } catch (error) {
       alert('Failed to send email: ' + error.message);
@@ -174,8 +177,13 @@ const ContactModal = ({ onClose }) => {
               disabled={isGenerating || !formData.emotion || !formData.topic || !formData.name}
               className="w-full bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
             >
-              <span className="text-xl">🤖</span>
-              {isGenerating ? 'Generating AI Email...' : 'Generate AI Email'}
+              {isGenerating ? (
+                <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Generating...</>
+              ) : (
+                <>
+                  <span className="text-xl">🤖</span> Generate AI Email
+                </>
+              )}
             </button>
             
             {apiError && (
