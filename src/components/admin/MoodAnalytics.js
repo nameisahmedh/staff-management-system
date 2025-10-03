@@ -91,9 +91,6 @@ const MoodAnalytics = () => {
     } catch (error) {
       console.error('AI Analysis failed:', error);
       showToast('AI analysis failed. Please try again.', 'error');
-      // Fallback to basic analysis
-      const analysis = generateFallbackAnalysis({ overall, byStaff }, tasks, users);
-      setAiAnalysis(analysis);
     }
     
     setAnalyzingMood(false);
@@ -399,7 +396,7 @@ const MoodAnalytics = () => {
             <div>
               <h5 className="font-semibold text-purple-800 dark:text-purple-200">Action Items</h5>
               <ul className="list-disc list-inside text-sm text-gray-800 dark:text-gray-200">
-                {aiAnalysis.actionItems.split('\n').map((item, index) => item && <li key={index}>{item.replace(/^- /, '')}</li>)}
+                {aiAnalysis.actionItems.split('\n').map((item, index) => item.trim() && <li key={index}>{item.replace(/^- /, '').trim()}</li>)}
               </ul>
             </div>
           </div>

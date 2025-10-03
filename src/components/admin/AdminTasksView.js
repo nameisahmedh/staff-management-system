@@ -23,6 +23,7 @@ const AdminTasksView = ({ showFormOnly = false }) => {
     assignedTo: ''
   });
   const [filter, setFilter] = useState('all');
+  const [isEnhancing, setIsEnhancing] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -76,7 +77,7 @@ const AdminTasksView = ({ showFormOnly = false }) => {
     const staffUser = users.find(u => u.id === task.assignedTo);
     if (!staffUser) return;
 
-    openModal("📧 Generating Email...", '<div class="text-center p-8">AI is drafting the notification...</div>');
+    openModal("📧 Generating Email...", '<div class="text-center p-8"><div class="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div><p>AI is drafting the notification...</p></div>');
 
     try {
       const adminUser = users.find(u => u.role === 'admin');
@@ -93,16 +94,16 @@ const AdminTasksView = ({ showFormOnly = false }) => {
         const subject = document.getElementById('emailSubject')?.value || emailContent.subject;
         const body = document.getElementById('emailBody')?.value || emailContent.body;
         sendTaskEmail(staffUser.email, subject, body);
-        showToast(`📧 Email opened for ${staffUser.username} - Check Gmail to send!`, 'success');
+        showToast(`Email opened for ${staffUser.username} - Check Gmail to send!`, 'success');
         document.querySelector('[data-modal-close]')?.click();
       };
       
       openModal(
-        "📧 Task Assignment & Email Notification",
+        "Task Assignment & Email Notification",
         `<div class="space-y-4">
           <div class="bg-green-50 p-4 rounded border">
             <p class="text-green-700">
-              <strong>✅ Task assigned to ${staffUser.username}</strong>
+              <strong>Task assigned to ${staffUser.username}</strong>
             </p>
           </div>
           
@@ -116,14 +117,14 @@ const AdminTasksView = ({ showFormOnly = false }) => {
           
           <div class="bg-gray-50 p-4 rounded border">
             <div class="flex justify-between items-center mb-2">
-              <h4 class="font-semibold">Email Content</h4>
+              <h4 class="font-semibold">Email Content (Plain Text)</h4>
             </div>
-            <textarea id="emailBody" class="text-sm bg-white p-3 rounded border w-full h-40 resize-none">${emailContent.body}</textarea>
+            <textarea id="emailBody" class="text-sm bg-white p-3 rounded border w-full h-40 resize-none font-mono">${emailContent.body.replace(/\r\n/g, '\n')}</textarea>
           </div>
         </div>`,
         `<div class="flex gap-3">
           <button onclick="window.sendEmailHandler()" class="bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700">
-            📧 Send Email
+            Send Email
           </button>
         </div>`
       );
@@ -148,7 +149,8 @@ const AdminTasksView = ({ showFormOnly = false }) => {
       return;
     }
 
-    openModal("✨ Enhancing Task...", '<div className="text-center p-8">AI is working its magic...</div>');
+    setIsEnhancing(true);
+    openModal("✨ Enhancing Task...", '<div class="text-center p-8"><div class="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div><p>AI is working its magic...</p></div>');
 
     try {
       const enhancedText = await enhanceTaskDescription(briefDescription);
@@ -156,13 +158,31 @@ const AdminTasksView = ({ showFormOnly = false }) => {
         ...prev,
         text: enhancedText.trim()
       }));
-      openModal("Enhanced Task Description", `<div className="p-4"><p>The task description has been enhanced!</p></div>`);
-      showToast("Task description enhanced!");
-    } catch (error) {
+      
       openModal(
-        "Enhancement Failed",
-        '<p className="text-red-500">Sorry, the AI assistant failed. Please try again.</p>'
+        "✅ Task Enhanced Successfully!", 
+        `<div class="p-4 text-center">
+          <div class="text-4xl mb-4">🎉</div>
+          <p class="text-green-600 font-semibold mb-2">Your task description has been enhanced!</p>
+          <p class="text-gray-600 text-sm">The AI has improved your task description with more detail and clarity.</p>
+        </div>`
       );
+      
+      showToast("✨ Task description enhanced successfully!", 'success');
+    } catch (error) {
+      console.error('Enhancement error:', error);
+      openModal(
+        "❌ Enhancement Failed",
+        `<div class="p-4 text-center">
+          <div class="text-4xl mb-4">😔</div>
+          <p class="text-red-600 font-semibold mb-2">AI Enhancement Failed</p>
+          <p class="text-gray-600 text-sm">Sorry, the AI assistant encountered an error. Please check your API key and try again.</p>
+          <p class="text-xs text-gray-500 mt-2">Error: ${error.message}</p>
+        </div>`
+      );
+      showToast("AI enhancement failed. Please try again.", 'error');
+    } finally {
+      setIsEnhancing(false);
     }
   };
 
@@ -200,9 +220,17 @@ const AdminTasksView = ({ showFormOnly = false }) => {
                 <button
                   type="button"
                   onClick={handleEnhanceDescription}
-                  className="text-xs text-indigo-600 hover:underline font-semibold"
+                  disabled={isEnhancing || !formData.text.trim()}
+                  className="text-xs text-indigo-600 hover:underline font-semibold disabled:text-gray-400 disabled:cursor-not-allowed flex items-center gap-1"
                 >
-                  ✨ Enhance with AI
+                  {isEnhancing ? (
+                    <>
+                      <div className="w-3 h-3 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                      Enhancing...
+                    </>
+                  ) : (
+                    <>✨ Enhance with AI</>
+                  )}
                 </button>
               </div>
               <textarea
@@ -317,9 +345,17 @@ const AdminTasksView = ({ showFormOnly = false }) => {
                   <button
                     type="button"
                     onClick={handleEnhanceDescription}
-                    className="text-xs text-indigo-600 hover:underline font-semibold self-start sm:self-auto"
+                    disabled={isEnhancing || !formData.text.trim()}
+                    className="text-xs text-indigo-600 hover:underline font-semibold self-start sm:self-auto disabled:text-gray-400 disabled:cursor-not-allowed flex items-center gap-1"
                   >
-                    ✨ Enhance with AI
+                    {isEnhancing ? (
+                      <>
+                        <div className="w-3 h-3 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                        Enhancing...
+                      </>
+                    ) : (
+                      <>✨ Enhance with AI</>
+                    )}
                   </button>
                 </div>
                 <textarea

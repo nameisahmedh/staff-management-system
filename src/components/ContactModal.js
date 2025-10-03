@@ -70,54 +70,44 @@ const ContactModal = ({ onClose }) => {
 
     setIsSending(true);
     try {
-      // Create a temporary form for FormSubmit
-      const tempForm = document.createElement('form');
-      tempForm.action = 'https://formsubmit.co/mdqamarahmed123@gmail.com';
-      tempForm.method = 'POST';
-      tempForm.target = '_blank';
+      // Use fetch to submit to FormSubmit without redirect
+      const formData2 = new FormData();
+      formData2.append('name', formData.name);
+      formData2.append('email', formData.email);
+      formData2.append('message', formData.message);
+      formData2.append('emotion', formData.emotion || 'Not specified');
+      formData2.append('topic', formData.topic || 'General Inquiry');
+      formData2.append('_subject', `Staff Management Contact: ${formData.topic || 'General Inquiry'}`);
+      formData2.append('_captcha', 'false');
+      formData2.append('_template', 'table');
+      formData2.append('_autoresponse', 'Thank you for contacting us! We will get back to you soon.');
 
-      // Add form data as hidden inputs
-      const fields = {
-        name: formData.name,
-        email: formData.email,
-        message: formData.message,
-        emotion: formData.emotion || 'Not specified',
-        topic: formData.topic || 'General Inquiry',
-        _subject: `Staff Management Contact: ${formData.topic || 'General Inquiry'}`,
-        _captcha: 'false',
-        _template: 'table'
-      };
-
-      Object.entries(fields).forEach(([key, value]) => {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = key;
-        input.value = value;
-        tempForm.appendChild(input);
+      const response = await fetch('https://formsubmit.co/ajax/mdqamarahmed123@gmail.com', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json'
+        },
+        body: formData2
       });
 
-      // Submit the form
-      document.body.appendChild(tempForm);
-      tempForm.submit();
-      document.body.removeChild(tempForm);
+      const result = await response.json();
 
-      // Show success state
-      setEmailSent(true);
-      showToast('Email sent successfully! Check your email for confirmation.', 'success');
-      
-      // Reset form
-      setFormData({
-        name: '',
-        email: '',
-        emotion: '',
-        topic: '',
-        message: ''
-      });
-      
-      // Close modal after showing success
-      setTimeout(() => {
-        onClose();
-      }, 2000);
+      if (response.ok && result.success) {
+        // Show success state
+        setEmailSent(true);
+        showToast('Email sent successfully!', 'success');
+        
+        // Reset form
+        setFormData({
+          name: '',
+          email: '',
+          emotion: '',
+          topic: '',
+          message: ''
+        });
+      } else {
+        throw new Error(result.message || 'Failed to send email');
+      }
       
     } catch (error) {
       console.error('Email sending error:', error);
@@ -143,14 +133,20 @@ const ContactModal = ({ onClose }) => {
 
         {/* Success Message */}
         {emailSent && (
-          <div className="p-6 text-center">
-            <div className="text-6xl mb-4">✅</div>
-            <h3 className="text-xl font-semibold text-green-600 dark:text-green-400 mb-2">
-              Email Sent Successfully!
+          <div className="p-8 text-center">
+            <div className="text-6xl mb-4 animate-bounce">✅</div>
+            <h3 className="text-2xl font-bold text-green-600 dark:text-green-400 mb-3">
+              Thank You for Submitting!
             </h3>
-            <p className="text-gray-600 dark:text-gray-400">
-              Your message has been sent. We'll get back to you soon!
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              Your message has been sent successfully. We'll get back to you soon!
             </p>
+            <button
+              onClick={onClose}
+              className="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 transition-all duration-300"
+            >
+              Close
+            </button>
           </div>
         )}
 

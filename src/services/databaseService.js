@@ -104,7 +104,8 @@ class DatabaseService {
       status: task.status || 'Pending',
       priority: task.priority || 'Medium',
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      assignedAt: task.assignedTo ? new Date().toISOString() : null
     };
     tasks.push(newTask);
     this.saveTasks(tasks);
@@ -115,7 +116,24 @@ class DatabaseService {
     const tasks = this.getTasks();
     const taskIndex = tasks.findIndex(t => t.id == taskId);
     if (taskIndex !== -1) {
-      tasks[taskIndex] = { ...tasks[taskIndex], ...updates, updatedAt: new Date().toISOString() };
+      const currentTask = tasks[taskIndex];
+      const updatedTask = { 
+        ...currentTask, 
+        ...updates, 
+        updatedAt: new Date().toISOString()
+      };
+      
+      // Add completion timestamp when status changes to Completed
+      if (updates.status === 'Completed' && currentTask.status !== 'Completed') {
+        updatedTask.completedAt = new Date().toISOString();
+      }
+      
+      // Add assignment timestamp when task gets assigned
+      if (updates.assignedTo && !currentTask.assignedAt) {
+        updatedTask.assignedAt = new Date().toISOString();
+      }
+      
+      tasks[taskIndex] = updatedTask;
       this.saveTasks(tasks);
       return tasks[taskIndex];
     }
