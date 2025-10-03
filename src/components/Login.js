@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-
+import ForgotPassword from './ForgotPassword';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showError, setShowError] = useState(false);
-
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuth();
   const { showToast } = useToast();
@@ -193,7 +193,7 @@ const Login = () => {
           {showError && (
             <p className="text-red-500 text-sm">Invalid email or password.</p>
           )}
-          
+
           <button
             type="submit"
             className="w-full bg-black text-white py-2 px-4 rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black"
@@ -201,9 +201,16 @@ const Login = () => {
             Login
           </button>
         </form>
-        
 
-        
+        <div className="mt-4 text-center">
+          <button
+            onClick={() => setShowForgotPassword(true)}
+            className="text-indigo-600 hover:text-indigo-800 text-sm font-medium hover:underline"
+          >
+            Forgot Password?
+          </button>
+        </div>
+
           <div className="mt-6 p-4 bg-slate-100 rounded-md border border-slate-200">
             <p className="text-sm text-slate-700 font-medium mb-2">Demo Account:</p>
             <div className="text-xs text-slate-600 space-y-1">
@@ -214,8 +221,10 @@ const Login = () => {
           </div>
         </div>
       </div>
-      
 
+      {showForgotPassword && (
+        <ForgotPassword onClose={() => setShowForgotPassword(false)} />
+      )}
     </div>
   );
 };

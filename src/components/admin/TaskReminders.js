@@ -41,45 +41,164 @@ const TaskReminders = () => {
   const generateReminderEmail = (task, daysDiff) => {
     const urgencyLevel = daysDiff === 0 ? 'URGENT' : daysDiff === 1 ? 'HIGH' : 'MEDIUM';
     const timeText = daysDiff === 0 ? 'TODAY' : daysDiff === 1 ? 'TOMORROW' : `in ${daysDiff} days`;
-    
-    return `Subject: ${urgencyLevel}: ${task.priority} Priority Task Due ${timeText.charAt(0).toUpperCase() + timeText.slice(1)}
+    const priorityEmoji = task.priority === 'High' ? '🔴' : task.priority === 'Medium' ? '🟡' : '🟢';
+    const urgencyEmoji = daysDiff === 0 ? '⚠️' : daysDiff === 1 ? '⏰' : '📅';
+
+    const lowerText = task.text.toLowerCase();
+
+    const getTaskTypeContext = () => {
+      if (lowerText.includes('chatbot') || lowerText.includes('ai') || lowerText.includes('bot')) {
+        return `\n\n🤖 TASK TYPE: AI/Chatbot Development\nThis task involves artificial intelligence and chatbot functionality. Ensure all AI responses are tested and validated before completion.`;
+      }
+      if (lowerText.includes('web') || lowerText.includes('website') || lowerText.includes('frontend')) {
+        return `\n\n🎨 TASK TYPE: Web/Frontend Development\nThis task focuses on user interface and web functionality. Test across multiple browsers and devices before marking complete.`;
+      }
+      if (lowerText.includes('api') || lowerText.includes('backend') || lowerText.includes('database')) {
+        return `\n\n⚙️ TASK TYPE: Backend/Database Work\nThis task involves backend systems. Ensure proper error handling, data validation, and security measures are in place.`;
+      }
+      if (lowerText.includes('test') || lowerText.includes('qa') || lowerText.includes('bug')) {
+        return `\n\n🔍 TASK TYPE: Testing/QA\nThis task requires thorough testing. Document all test cases and ensure comprehensive coverage of edge cases.`;
+      }
+      if (lowerText.includes('security') || lowerText.includes('auth')) {
+        return `\n\n🔒 TASK TYPE: Security/Authentication\nThis task is security-critical. Follow security best practices and ensure all vulnerabilities are addressed.`;
+      }
+      if (lowerText.includes('deploy') || lowerText.includes('release')) {
+        return `\n\n🚀 TASK TYPE: Deployment/Release\nThis task involves deployment. Follow the deployment checklist and ensure rollback plans are in place.`;
+      }
+      if (lowerText.includes('document') || lowerText.includes('doc')) {
+        return `\n\n📝 TASK TYPE: Documentation\nThis task requires clear documentation. Ensure all information is accurate, comprehensive, and easy to understand.`;
+      }
+      return `\n\n💼 TASK TYPE: General Development\nThis task is part of the ongoing development cycle. Follow project standards and maintain code quality.`;
+    };
+
+    const getSpecificReminders = () => {
+      const reminders = [];
+      if (task.priority === 'High' || daysDiff <= 1) {
+        reminders.push('• This is a HIGH-PRIORITY reminder - immediate action required');
+        reminders.push('• Block your calendar and eliminate distractions to focus on this task');
+      }
+      if (lowerText.includes('test') || lowerText.includes('qa')) {
+        reminders.push('• Run all test suites and verify functionality thoroughly');
+      }
+      if (lowerText.includes('review') || lowerText.includes('code')) {
+        reminders.push('• Conduct thorough code review and follow coding standards');
+      }
+      if (lowerText.includes('api') || lowerText.includes('backend')) {
+        reminders.push('• Test all API endpoints and validate error responses');
+      }
+      if (lowerText.includes('ui') || lowerText.includes('interface')) {
+        reminders.push('• Verify responsive design across different screen sizes');
+      }
+      if (lowerText.includes('security')) {
+        reminders.push('• Perform security audit and penetration testing if applicable');
+      }
+      if (reminders.length === 0) {
+        reminders.push('• Review all acceptance criteria before marking as complete');
+      }
+      return reminders.join('\n');
+    };
+
+    const getActionPlan = () => {
+      if (daysDiff === 0) {
+        return `${urgencyEmoji} CRITICAL ACTION PLAN FOR TODAY:
+1. DROP EVERYTHING - This task must be completed TODAY
+2. Review task requirements one final time
+3. Focus exclusively on task completion
+4. Test thoroughly despite time pressure
+5. Update status to "Completed" once finished
+6. Notify admin immediately if completion is impossible
+
+⚠️ If you cannot complete this today, contact admin NOW to discuss options.`;
+      } else if (daysDiff === 1) {
+        return `${urgencyEmoji} URGENT ACTION PLAN FOR TOMORROW:
+1. Clear your schedule for tomorrow - this is top priority
+2. Gather all required resources and information today
+3. Plan your approach and identify potential blockers
+4. Start any preparatory work that can be done today
+5. Set reminders to begin work first thing tomorrow
+6. Contact admin today if you foresee any issues`;
+      } else if (daysDiff <= 3) {
+        return `${urgencyEmoji} ACTION PLAN (${daysDiff} days remaining):
+1. Schedule dedicated time blocks for this task
+2. Break down the task into smaller, manageable sub-tasks
+3. Identify any dependencies or resources needed
+4. Begin work within the next 24 hours
+5. Set daily check-ins with yourself to track progress
+6. Maintain communication with admin on progress`;
+      } else {
+        return `${urgencyEmoji} ACTION PLAN (${daysDiff} days remaining):
+1. Review task requirements and scope
+2. Plan your approach and timeline
+3. Allocate time in your schedule strategically
+4. Identify any questions or clarifications needed
+5. Begin work soon to avoid last-minute rush
+6. Update progress regularly in ArixManage system`;
+      }
+    };
+
+    return `Subject: ${urgencyEmoji} ${urgencyLevel} REMINDER: ${task.priority} Priority Task Due ${timeText.toUpperCase()}
 
 Dear ${task.user?.username},
 
-I hope this email finds you well. This is a ${daysDiff === 0 ? 'critical' : 'friendly'} reminder regarding your upcoming task deadline.
+${daysDiff === 0 ? '⚠️⚠️⚠️ URGENT REMINDER ⚠️⚠️⚠️\n\nThis is a CRITICAL reminder - your task is DUE TODAY!' : daysDiff === 1 ? '⏰ IMPORTANT REMINDER ⏰\n\nYour task is due TOMORROW!' : `📅 FRIENDLY REMINDER 📅\n\nYour task deadline is approaching in ${daysDiff} days.`}
 
-TASK REMINDER DETAILS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 TASK REMINDER DETAILS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 Task: ${task.text}
-Priority Level: ${task.priority}
+
+Priority Level: ${task.priority} ${priorityEmoji}
+Current Status: ${task.status || 'Pending'}
 Due Date: ${new Date(task.dueDate).toLocaleDateString()}${task.dueTime ? ` at ${task.dueTime}` : ''}
-Time Remaining: ${daysDiff === 0 ? 'Due TODAY' : `${daysDiff} day${daysDiff > 1 ? 's' : ''} remaining`}
+Time Remaining: ${daysDiff === 0 ? '⚠️ DUE TODAY ⚠️' : daysDiff === 1 ? '⏰ DUE TOMORROW ⏰' : `${daysDiff} day${daysDiff > 1 ? 's' : ''} remaining`}
+Urgency Level: ${urgencyLevel} ${urgencyEmoji}
+${getTaskTypeContext()}
 
-CURRENT STATUS:
-• Task Status: ${task.status || 'Pending'}
-• Urgency Level: ${urgencyLevel}
-• Action Required: ${daysDiff === 0 ? 'Immediate completion needed' : 'Plan and execute accordingly'}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ ${daysDiff === 0 ? 'IMMEDIATE' : 'REQUIRED'} ACTIONS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-WHAT YOU NEED TO DO:
-• ${daysDiff === 0 ? 'Complete the task immediately to avoid delays' : 'Review task requirements and plan your approach'}
-• Update task status in ArixManage system as you progress
-• ${daysDiff === 0 ? 'Contact admin immediately if you need assistance' : 'Reach out if you need clarification or support'}
+${getActionPlan()}
 
-IMPORTANT REMINDERS:
-• Quality standards must be maintained despite time constraints
-• Please communicate any potential delays immediately
-• Access ArixManage system to update your progress
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📌 SPECIFIC REMINDERS FOR THIS TASK:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-${daysDiff === 0 ? 
-'IMMEDIATE ACTION REQUIRED:\nThis task is due today. Please prioritize this work and complete it as soon as possible. If you encounter any issues, contact the admin team immediately.' : 
-'PLANNING AHEAD:\nYou still have time to plan and execute this task effectively. Please ensure you allocate sufficient time and resources to complete it by the deadline.'}
+${getSpecificReminders()}
+• Quality must not be compromised - deliver your best work
+• Document your work and update task notes in ArixManage
+• Contact admin immediately if you encounter blockers
 
-Please confirm receipt of this reminder and let me know if you have any questions or concerns.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️ IMPORTANT NOTES:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Thank you for your attention to this matter.
+• Update your task status in ArixManage as you make progress
+• Communicate proactively if you anticipate any delays
+• Confirm receipt of this reminder by updating task comments
+• Remember: It's better to ask for help than to miss the deadline
+${daysDiff === 0 ? '\n🚨 CRITICAL: If you cannot complete this today, notify admin IMMEDIATELY. Do not wait until the deadline passes.\n' : ''}
+${daysDiff <= 1 ? '\n⚠️ URGENT: This task requires your immediate attention. Clear your schedule and prioritize this work.\n' : ''}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Please log into the ArixManage system RIGHT NOW to:
+1. Review complete task details
+2. Update your progress status
+3. Add any comments or concerns
+4. Mark as completed once finished
+
+${daysDiff === 0 ? 'This is your FINAL reminder. Action is required TODAY.' : daysDiff === 1 ? 'This is an URGENT reminder. Begin work immediately.' : 'This is a friendly reminder to help you stay on track.'}
+
+If you have any questions, concerns, or need assistance, please contact the admin team IMMEDIATELY. We are here to support you!
 
 Best regards,
 Admin Team
-ArixManage System`;
+ArixManage Task Management System
+
+---
+${daysDiff === 0 ? '⚠️ CRITICAL DEADLINE: TODAY' : daysDiff === 1 ? '⏰ URGENT: DUE TOMORROW' : `📅 Reminder sent: ${daysDiff} days before deadline`}
+Task ID: ${task.id} | Priority: ${task.priority} ${priorityEmoji}`;
   };
 
   const sendReminders = async () => {

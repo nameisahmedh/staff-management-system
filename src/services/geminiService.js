@@ -1,15 +1,15 @@
 export const callGeminiAPI = async (prompt) => {
-  const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
-  
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+
   console.log('=== GEMINI SERVICE DEBUG ===');
   console.log('API Key from env:', apiKey ? 'Found' : 'Not found');
   console.log('API Key length:', apiKey ? apiKey.length : 0);
   console.log('API Key preview:', apiKey ? apiKey.substring(0, 15) + '...' : 'N/A');
-  
+
   if (!apiKey) {
-    throw new Error('Gemini API key not found. Please check your environment variables.');
+    throw new Error('Gemini API key not found. Please add VITE_GEMINI_API_KEY to your .env file.');
   }
-  
+
   if (!apiKey.startsWith('AIzaSy')) {
     throw new Error('Invalid API key format. Gemini API keys should start with "AIzaSy"');
   }
