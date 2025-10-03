@@ -1,0 +1,274 @@
+import React, { useState, useMemo } from 'react';
+import { useTasks } from '../../hooks/useTasks';
+import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
+import { useModal } from '../../contexts/ModalContext';
+
+const TaskReminders = () => {
+  const { tasks } = useTasks();
+  const { users } = useAuth();
+  const { showToast } = useToast();
+  const { openModal } = useModal();
+  const [selectedDays, setSelectedDays] = useState('2');
+  const [sending, setSending] = useState(false);
+
+  const upcomingTasks = useMemo(() => {
+    const now = new Date();
+    const daysAhead = parseInt(selectedDays);
+    const targetDate = new Date(now.getTime() + (daysAhead * 24 * 60 * 60 * 1000));
+    
+    return tasks.filter(task => {
+      if (task.status === 'Completed') return false;
+      
+      const taskDueDate = new Date(task.dueDate);
+      const daysDiff = Math.ceil((taskDueDate - now) / (1000 * 60 * 60 * 24));
+      
+      return daysDiff <= daysAhead && daysDiff >= 0;
+    }).map(task => {
+      const user = users.find(u => u.id === task.assignedTo);
+      const dueDate = new Date(task.dueDate);
+      const daysDiff = Math.ceil((dueDate - now) / (1000 * 60 * 60 * 24));
+      
+      return {
+        ...task,
+        user,
+        daysDiff,
+        dueDateTime: task.dueTime ? `${task.dueDate} ${task.dueTime}` : task.dueDate
+      };
+    }).sort((a, b) => a.daysDiff - b.daysDiff);
+  }, [tasks, users, selectedDays]);
+
+  const generateReminderEmail = (task, daysDiff) => {
+    const urgencyLevel = daysDiff === 0 ? 'URGENT' : daysDiff === 1 ? 'HIGH' : 'MEDIUM';
+    const timeText = daysDiff === 0 ? 'TODAY' : daysDiff === 1 ? 'TOMORROW' : `in ${daysDiff} days`;
+    
+    return `Subject: ${urgencyLevel}: ${task.priority} Priority Task Due ${timeText.charAt(0).toUpperCase() + timeText.slice(1)}
+
+Dear ${task.user?.username},
+
+I hope this email finds you well. This is a ${daysDiff === 0 ? 'critical' : 'friendly'} reminder regarding your upcoming task deadline.
+
+TASK REMINDER DETAILS:
+Task: ${task.text}
+Priority Level: ${task.priority}
+Due Date: ${new Date(task.dueDate).toLocaleDateString()}${task.dueTime ? ` at ${task.dueTime}` : ''}
+Time Remaining: ${daysDiff === 0 ? 'Due TODAY' : `${daysDiff} day${daysDiff > 1 ? 's' : ''} remaining`}
+
+CURRENT STATUS:
+• Task Status: ${task.status || 'Pending'}
+• Urgency Level: ${urgencyLevel}
+• Action Required: ${daysDiff === 0 ? 'Immediate completion needed' : 'Plan and execute accordingly'}
+
+WHAT YOU NEED TO DO:
+• ${daysDiff === 0 ? 'Complete the task immediately to avoid delays' : 'Review task requirements and plan your approach'}
+• Update task status in ArixManage system as you progress
+• ${daysDiff === 0 ? 'Contact admin immediately if you need assistance' : 'Reach out if you need clarification or support'}
+
+IMPORTANT REMINDERS:
+• Quality standards must be maintained despite time constraints
+• Please communicate any potential delays immediately
+• Access ArixManage system to update your progress
+
+${daysDiff === 0 ? 
+'IMMEDIATE ACTION REQUIRED:\nThis task is due today. Please prioritize this work and complete it as soon as possible. If you encounter any issues, contact the admin team immediately.' : 
+'PLANNING AHEAD:\nYou still have time to plan and execute this task effectively. Please ensure you allocate sufficient time and resources to complete it by the deadline.'}
+
+Please confirm receipt of this reminder and let me know if you have any questions or concerns.
+
+Thank you for your attention to this matter.
+
+Best regards,
+Admin Team
+ArixManage System`;
+  };
+
+  const sendReminders = async () => {
+    if (upcomingTasks.length === 0) {
+      showToast('No tasks found for the selected timeframe', 'warning');
+      return;
+    }
+
+    const emailsData = upcomingTasks
+      .filter(task => task.user?.email)
+      .map(task => {
+        const emailContent = generateReminderEmail(task, task.daysDiff);
+        const [subjectLine, ...bodyParts] = emailContent.split('\n');
+        return {
+          task,
+          subject: subjectLine.replace('Subject: ', '').trim(),
+          body: bodyParts.join('\n').trim()
+        };
+      });
+
+    // Show bulk email modal
+    const emailsHtml = emailsData.map((email, index) => `
+      <div class="mb-4 p-4 border rounded-lg bg-gray-50">
+        <div class="flex justify-between items-center mb-2">
+          <h4 class="font-semibold text-blue-600">Email ${index + 1}: ${email.task.user.username}</h4>
+          <button onclick="window.openSingleEmail(${index})" class="text-sm bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">
+            📧 Open Gmail
+          </button>
+        </div>
+        <p class="text-sm text-gray-600 mb-2"><strong>To:</strong> ${email.task.user.email}</p>
+        <p class="text-sm text-gray-600 mb-2"><strong>Subject:</strong> ${email.subject}</p>
+        <div class="text-xs bg-white p-2 rounded border max-h-32 overflow-y-auto">
+          <pre class="whitespace-pre-wrap">${email.body.substring(0, 200)}...</pre>
+        </div>
+      </div>
+    `).join('');
+
+    window.emailsData = emailsData;
+    window.openSingleEmail = (index) => {
+      const email = emailsData[index];
+      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email.task.user.email)}&subject=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(email.body)}`;
+      window.open(gmailUrl, `gmail_${index}`);
+    };
+
+    window.openAllEmails = () => {
+      emailsData.forEach((email, index) => {
+        setTimeout(() => {
+          window.openSingleEmail(index);
+        }, index * 1000);
+      });
+    };
+
+    window.sendAllInOne = () => {
+      const allEmails = emailsData.map(email => email.task.user.email).join(',');
+      const combinedBody = emailsData.map((email, index) => 
+        `EMAIL ${index + 1} - ${email.task.user.username}:\n${email.subject}\n\n${email.body}\n\n${'='.repeat(50)}\n\n`
+      ).join('');
+      
+      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&bcc=${encodeURIComponent(allEmails)}&subject=${encodeURIComponent('Task Reminders - Multiple Recipients')}&body=${encodeURIComponent(combinedBody)}`;
+      window.open(gmailUrl, 'gmail_bulk');
+    };
+
+    openModal(
+      `📧 Bulk Email Reminders (${emailsData.length} emails)`,
+      `<div class="max-h-96 overflow-y-auto">${emailsHtml}</div>`,
+``
+    );
+  };
+
+  const previewReminders = () => {
+    if (upcomingTasks.length === 0) {
+      showToast('No tasks found for the selected timeframe', 'warning');
+      return;
+    }
+
+    const previewContent = upcomingTasks.map(task => {
+      const email = generateReminderEmail(task, task.daysDiff);
+      return `
+        <div class="mb-6 p-4 border rounded-lg bg-gray-50">
+          <div class="font-semibold text-blue-600 mb-2">To: ${task.user?.email || 'No email'}</div>
+          <div class="text-sm text-gray-600 mb-2">Task: ${task.text}</div>
+          <div class="text-sm text-gray-600 mb-2">Due in: ${task.daysDiff} day(s)</div>
+          <pre class="text-xs bg-white p-3 rounded border overflow-x-auto">${email}</pre>
+        </div>
+      `;
+    }).join('');
+
+    openModal(
+      `📧 Email Preview (${upcomingTasks.length} emails)`,
+      `<div class="max-h-96 overflow-y-auto">${previewContent}</div>`,
+      `<div class="flex gap-3">
+        <button onclick="document.querySelector('[data-modal-close]')?.click();" class="bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600">
+          Close
+        </button>
+      </div>`
+    );
+  };
+
+  return (
+    <div className="space-y-6 mt-4">
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+        <h2 className="text-xl font-semibold mb-6 text-black dark:text-white">📧 Task Reminder System</h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Send reminders for tasks due within:
+            </label>
+            <select
+              value={selectedDays}
+              onChange={(e) => setSelectedDays(e.target.value)}
+              className="input-field"
+            >
+              <option value="1">1 day</option>
+              <option value="2">2 days</option>
+              <option value="3">3 days</option>
+              <option value="5">5 days</option>
+              <option value="7">7 days</option>
+            </select>
+          </div>
+          
+          <div className="flex flex-col justify-end">
+            <button
+              onClick={previewReminders}
+              className="btn-secondary mb-2"
+              disabled={sending}
+            >
+              👁️ Preview Emails
+            </button>
+          </div>
+          
+          <div className="flex flex-col justify-end">
+            <button
+              onClick={sendReminders}
+              disabled={upcomingTasks.length === 0}
+              className="btn-primary"
+            >
+              📧 Send {upcomingTasks.length} Reminders
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+        <h3 className="text-lg font-semibold mb-4 text-black dark:text-white">
+          Upcoming Tasks ({upcomingTasks.length})
+        </h3>
+        
+        {upcomingTasks.length === 0 ? (
+          <p className="text-gray-500 dark:text-gray-400 text-center py-8">
+            No tasks due within the selected timeframe.
+          </p>
+        ) : (
+          <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-hide">
+            {upcomingTasks.map(task => (
+              <div key={task.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="flex-1">
+                  <div className="font-medium text-black dark:text-white">
+                    {task.text.length > 60 ? `${task.text.substring(0, 60)}...` : task.text}
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    Assigned to: {task.user?.username || 'Unassigned'} | 
+                    Due: {new Date(task.dueDate).toLocaleDateString()}
+                    {task.dueTime && ` at ${task.dueTime}`}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    task.daysDiff === 0 ? 'bg-red-100 text-red-800' :
+                    task.daysDiff === 1 ? 'bg-orange-100 text-orange-800' :
+                    'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {task.daysDiff === 0 ? 'Due Today' : `${task.daysDiff} day${task.daysDiff > 1 ? 's' : ''} left`}
+                  </span>
+                  <span className={`px-2 py-1 rounded text-xs font-medium ${
+                    task.priority === 'High' ? 'bg-red-100 text-red-800' :
+                    task.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-green-100 text-green-800'
+                  }`}>
+                    {task.priority}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default TaskReminders;
