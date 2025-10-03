@@ -22,7 +22,7 @@ After making changes to environment variables and API configuration, you need to
 
 1. **Check your .env file** contains:
    ```
-   REACT_APP_GEMINI_API_KEY=your_api_key_here
+   REACT_APP_GEMINI_API_KEY=your_gemini_api_key_here
    ```
 
 2. **Verify the API key is valid** by testing it directly in Google AI Studio
